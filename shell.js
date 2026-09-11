@@ -44,9 +44,9 @@
   };
   async function route(){
     if(!key)return;const serial=++routeSerial;
-    const name=(location.hash.slice(1)||'home');
-    const allowed=['home','analysis','map=moyale_borana','map=mandera_triangle','map=karamoja','map=dikhil'];
-    if(!allowed.includes(name)){location.hash='home';return;}
+    const name=(location.hash.slice(1)||boot.default_route||'home');
+    const allowed=boot.routes||['home','analysis','map=moyale_borana','map=mandera_triangle','map=karamoja','map=dikhil'];
+    if(!allowed.includes(name)){location.hash=boot.default_route||'home';return;}
     // Destroy the previous map before releasing its image URLs and data cache.
     el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">Opening…</p>';release();
     window.WBVault.status('Opening '+(name.startsWith('map=')?'map':name==='analysis'?'analysis':'maps')+'…');
@@ -61,6 +61,13 @@
     }catch(e){if(serial===routeSerial){window.WBVault.status('');el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">This view could not be opened. Use All maps to try again.</p>';}}
   }
   function lock(){epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();}
+  async function openWorkspace(){
+    manifest=JSON.parse(dec.decode(await decrypt(boot.manifest)));el('password').value='';
+    el('access').style.display='none';el('workspace').style.display='block';
+    el('lock').hidden=boot.access==='public';
+    el('toolbar').hidden=!!boot.standalone;el('workspace').classList.toggle('standalone',!!boot.standalone);
+    await route();
+  }
   el('lock').addEventListener('click',lock);window.addEventListener('hashchange',route);
   el('unlock').addEventListener('submit',async event=>{
     event.preventDefault();el('message').textContent='';el('unlockButton').disabled=true;
@@ -73,9 +80,16 @@
       try{raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(boot.wrap.nonce),additionalData:enc.encode('wrap:'+boot.build)},wrapping,un64(boot.wrap.ciphertext));}
       catch(_){throw new Error('The password was not accepted. Please try again.');}
       key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);new Uint8Array(raw).fill(0);
-      manifest=JSON.parse(dec.decode(await decrypt(boot.manifest)));el('password').value='';
-      el('access').style.display='none';el('workspace').style.display='block';await route();
+      await openWorkspace();
     }catch(e){key=null;manifest=null;el('message').textContent=e.message||'The site could not be unlocked. Please try again.';}
     finally{el('unlockButton').disabled=false;}
   });
+  async function start(){
+    try{
+      boot=await request('boot.json','json');
+      if(boot.access==='public'){key=await crypto.subtle.importKey('raw',un64(boot.public_key),'AES-GCM',false,['decrypt']);await openWorkspace();}
+      else{el('access').style.display='block';el('password').focus();}
+    }catch(e){window.WBVault.status('The maps could not start. Refresh this page to retry.');console.error(e);}
+  }
+  start();
 })();
