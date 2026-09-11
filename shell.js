@@ -47,6 +47,8 @@
     const name=(location.hash.slice(1)||boot.default_route||'home');
     const allowed=boot.routes||['home','analysis','map=moyale_borana','map=mandera_triangle','map=karamoja','map=dikhil'];
     if(!allowed.includes(name)){location.hash=boot.default_route||'home';return;}
+    const hideToolbar=!!boot.standalone||name==='home';
+    el('toolbar').hidden=hideToolbar;el('workspace').classList.toggle('standalone',hideToolbar);
     // Destroy the previous map before releasing its image URLs and data cache.
     el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">Opening…</p>';release();
     window.WBVault.status('Opening '+(name.startsWith('map=')?'map':name==='analysis'?'analysis':'maps')+'…');
