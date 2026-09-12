@@ -11,11 +11,12 @@
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
       try{
         const r=await fetch(new URL(path,base),{signal:controller.signal,credentials:'same-origin',cache:attempt?'reload':'no-cache'});
-        if(!r.ok){const error=new Error('A map file could not be loaded. Please try again.');error.status=r.status;error.assetPath=path;throw error;}
+        if(!r.ok){const error=new Error('A map file could not be loaded. Please try again.');error.code='HTTP_ERROR';error.status=r.status;error.assetPath=path;throw error;}
         return await r[format]();
       }catch(error){
         if(attempt===0)continue;
-        if(error.name==='AbortError')throw new Error('The download took too long. Please try again.');
+        if(error.name==='AbortError'){const timeout=new Error('The download took too long. Please try again.');timeout.code='DOWNLOAD_TIMEOUT';timeout.assetPath=path;throw timeout;}
+        error.assetPath=path;if(!error.code)error.code='DOWNLOAD_FAILED';
         throw error;
       }finally{clearTimeout(timer);}
     }
@@ -85,7 +86,7 @@
   async function publicUpdateBytes(file){
     if(!patchObject(file)||typeof file.path!=='string'||file.path!==file.path.trim()||!/^assets\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file.path)||typeof file.sha256!=='string'||!/^[a-f0-9]{64}$/.test(file.sha256))throw new Error('Invalid public update file.');
     const bytes=await request(file.path),digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');
-    if(digest!==file.sha256)throw new Error('A public map update could not be verified.');
+    if(digest!==file.sha256){const error=new Error('A public map update could not be verified.');error.code='UPDATE_INTEGRITY_MISMATCH';error.assetPath=file.path;error.receivedBytes=bytes.byteLength;error.actualDigest=digest;throw error;}
     return bytes;
   }
   async function decryptBase(desc,localKey){
@@ -153,7 +154,17 @@
       el('view').srcdoc=page.replace('<head>','<head><base href="'+base.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">');
       el('routeLabel').textContent=name.startsWith('map=')?name.slice(4).replace(/_/g,' '):'';
       window.WBVault.status('');
-    }catch(e){if(serial===routeSerial){console.error('The requested view could not be opened.',{route:name,error:e});window.WBVault.status('');el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">This view could not be opened. <button onclick="parent.location.reload()">Try again</button></p>';}}
+    }catch(e){if(serial===routeSerial){
+      console.error('The requested view could not be opened.',{route:name,error:e});window.WBVault.status('');
+      const escape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+      const text=value=>String(value??'').replace(/https?:\/\/[^\s<>"']+/gi,'[URL omitted]').slice(0,400);
+      const details=[['Code',e.code||e.name||'VIEW_LOAD_FAILED'],['Revision',boot.ui_revision||'Unknown'],['Route',name]];
+      if(typeof e.assetPath==='string'&&/^(?:boot\.json|assets\/[A-Za-z0-9][A-Za-z0-9._-]*)$/.test(e.assetPath)&&e.assetPath===e.assetPath.trim())details.push(['File',e.assetPath]);
+      if(Number.isInteger(e.status))details.push(['HTTP status',e.status]);
+      if(Number.isSafeInteger(e.receivedBytes))details.push(['Received bytes',e.receivedBytes]);
+      if(typeof e.actualDigest==='string'&&/^[a-f0-9]{64}$/.test(e.actualDigest))details.push(['Received SHA-256',e.actualDigest]);
+      el('view').srcdoc='<!doctype html><meta charset="utf-8"><title>Unable to open this view</title><main style="font:15px/1.5 Arial,sans-serif;padding:24px;max-width:760px;color:#183b3b"><h1 style="font-size:22px;margin:0 0 12px">Unable to open this view</h1><p>'+escape(text(e.message||'The requested view could not be loaded.'))+'</p><dl style="font-size:13px;overflow-wrap:anywhere">'+details.map(([label,value])=>'<div style="margin:8px 0"><dt style="font-weight:600">'+escape(label)+'</dt><dd style="margin:0">'+escape(text(value))+'</dd></div>').join('')+'</dl><button style="font:inherit;padding:8px 16px;cursor:pointer" onclick="parent.location.reload()">Try again</button></main>';
+    }}
   }
   function lock(){epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();}
   async function openWorkspace(){
