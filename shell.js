@@ -17,11 +17,101 @@
       throw error;
     }finally{clearTimeout(timer);}
   }
-  async function decrypt(desc){
-    const localKey=key,localEpoch=epoch;if(!localKey)throw new Error('The session is locked.');
-    const encrypted=await request(desc.path);
+  async function assetBytes(desc){
+    const safePath=p=>typeof p==='string'&&p===p.trim()&&/^assets\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(p);
+    if(!safePath(desc.path)||!Number.isSafeInteger(desc.bytes)||desc.bytes<0)throw new Error('Invalid map asset descriptor.');
+    const mapping=boot.asset_parts;
+    if(mapping!==undefined&&(!mapping||typeof mapping!=='object'||Array.isArray(mapping)))throw new Error('Invalid map asset parts.');
+    const split=mapping&&Object.prototype.hasOwnProperty.call(mapping,desc.path);
+    const paths=split?mapping[desc.path]:[desc.path];
+    if(!Array.isArray(paths)||!paths.length||paths.length>1024||!paths.every(safePath))throw new Error('Invalid map asset parts.');
+    const chunks=[];let bytes=0;
+    for(let offset=0;offset<paths.length;offset+=4){
+      const batch=await Promise.all(paths.slice(offset,offset+4).map(path=>request(path)));
+      for(const chunk of batch){bytes+=chunk.byteLength;if(bytes>desc.bytes)throw new Error('A map file is incomplete. Please try again.');chunks.push(new Uint8Array(chunk));}
+    }
+    if(bytes!==desc.bytes)throw new Error('A map file is incomplete. Please try again.');
+    const joined=new Uint8Array(bytes);let offset=0;
+    for(const chunk of chunks){joined.set(chunk,offset);offset+=chunk.byteLength;}
+    return joined;
+  }
+  function patchKey(key){return typeof key==='string'&&key.length>0&&!['__proto__','prototype','constructor'].includes(key);}
+  function patchObject(value){return value!==null&&typeof value==='object'&&!Array.isArray(value);}
+  function checkPatchValue(value){
+    if(Array.isArray(value)){value.forEach(checkPatchValue);return;}
+    if(patchObject(value)){for(const key of Object.keys(value)){if(!patchKey(key))throw new Error('Invalid update property.');checkPatchValue(value[key]);}}
+  }
+  function applyPublicPatch(data,patch,name){
+    const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
+    if(!patchObject(patch)||patch.format!=='public-json-patch-v1'||patch.asset!==name||!Array.isArray(patch.operations))throw new Error('Invalid public map update.');
+    checkPatchValue(patch);
+    for(const op of patch.operations){
+      if(!patchObject(op)||!Array.isArray(op.path)||!op.path.every(patchKey))throw new Error('Invalid update path.');
+      const at=path=>{let value=data;for(const key of path){if(!patchObject(value)||!own(value,key))throw new Error('Missing update path.');value=value[key];}return value;};
+      if(op.op==='set'){
+        if(!own(op,'value'))throw new Error('Missing update value.');
+        if(!op.path.length)data=op.value;
+        else{const parent=at(op.path.slice(0,-1));if(!patchObject(parent))throw new Error('Invalid update parent.');parent[op.path.at(-1)]=op.value;}
+      }else if(op.op==='delete'){
+        if(!op.path.length)throw new Error('Cannot delete the update root.');
+        const parent=at(op.path.slice(0,-1)),key=op.path.at(-1);if(!patchObject(parent)||!own(parent,key))throw new Error('Missing update property.');delete parent[key];
+      }else{
+        const rows=at(op.path),key=op.key;
+        if(!Array.isArray(rows)||!patchKey(key))throw new Error('Invalid update row target.');
+        const validId=id=>typeof id==='string'||(typeof id==='number'&&Number.isFinite(id));
+        const byId=new Map();for(const row of rows){if(!patchObject(row)||!own(row,key)||!validId(row[key])||byId.has(row[key]))throw new Error('Missing or duplicate update row identity.');byId.set(row[key],row);}
+        const ids=list=>{if(!Array.isArray(list)||list.some(id=>!validId(id))||new Set(list).size!==list.length)throw new Error('Invalid update row identities.');for(const id of list)if(!byId.has(id))throw new Error('Missing update row.');return new Set(list);};
+        if(op.op==='remove_rows'){const removed=ids(op.ids);for(let i=rows.length-1;i>=0;i--)if(removed.has(rows[i][key]))rows.splice(i,1);}
+        else if(op.op==='update_row'){
+          if(!validId(op.id)||!byId.has(op.id))throw new Error('Missing update row.');
+          const row=byId.get(op.id),fields=own(op,'set')?op.set:{},deleted=own(op,'delete')?op.delete:[];
+          if(!patchObject(fields)||!Array.isArray(deleted)||!deleted.every(patchKey)||new Set(deleted).size!==deleted.length)throw new Error('Invalid update row fields.');
+          if(deleted.includes(key)||(own(fields,key)&&fields[key]!==op.id))throw new Error('Cannot change update row identity.');
+          for(const field of deleted){if(!own(row,field))throw new Error('Missing update row field.');delete row[field];}
+          for(const field of Object.keys(fields)){if(!patchKey(field))throw new Error('Invalid update row field.');row[field]=fields[field];}
+        }else if(op.op==='insert_row'){
+          if(!Number.isInteger(op.index)||op.index<0||op.index>rows.length||!patchObject(op.value)||!own(op.value,key)||!validId(op.value[key])||byId.has(op.value[key]))throw new Error('Invalid inserted update row.');
+          rows.splice(op.index,0,op.value);
+        }else if(op.op==='order_rows'){
+          ids(op.ids);if(op.ids.length!==rows.length)throw new Error('Update ordering must include every row.');rows.splice(0,rows.length,...op.ids.map(id=>byId.get(id)));
+        }else throw new Error('Unknown public update operation.');
+      }
+    }
+    return data;
+  }
+  async function publicUpdateBytes(file){
+    if(!patchObject(file)||typeof file.path!=='string'||file.path!==file.path.trim()||!/^assets\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file.path)||typeof file.sha256!=='string'||!/^[a-f0-9]{64}$/.test(file.sha256))throw new Error('Invalid public update file.');
+    const bytes=await request(file.path),digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');
+    if(digest!==file.sha256)throw new Error('A public map update could not be verified.');
+    return bytes;
+  }
+  async function decryptBase(desc,localKey){
+    const encrypted=await assetBytes(desc);
     let clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(desc.nonce),additionalData:enc.encode(boot.build+'|'+desc.id)},localKey,encrypted);
     if(desc.gzip)clear=await new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    return clear;
+  }
+  async function decrypt(desc,name){
+    const localKey=key,localEpoch=epoch;if(!localKey)throw new Error('The session is locked.');
+    const updates=boot.public_updates;
+    if(updates!==undefined&&(boot.access!=='public'||!patchObject(updates)))throw new Error('Invalid public map updates.');
+    const hasUpdate=updates&&Object.prototype.hasOwnProperty.call(updates,desc.path),update=hasUpdate?updates[desc.path]:null;
+    let clear;
+    if(hasUpdate){
+      if(!patchObject(update)||Object.keys(update).length!==1)throw new Error('Invalid public map update.');
+      if(Object.prototype.hasOwnProperty.call(update,'file')){
+        if(desc.mime!=='text/html'||typeof name!=='string'||!name.startsWith('page/'))throw new Error('Invalid public page update.');
+        clear=await publicUpdateBytes(update.file);
+      }else if(Object.prototype.hasOwnProperty.call(update,'patches')){
+        if(desc.mime!=='application/json'||!Array.isArray(update.patches)||!update.patches.length||update.patches.length>1024||typeof name!=='string')throw new Error('Invalid public JSON update.');
+        let data=JSON.parse(dec.decode(await decryptBase(desc,localKey)));
+        for(let offset=0;offset<update.patches.length;offset+=4){
+          const parts=await Promise.all(update.patches.slice(offset,offset+4).map(publicUpdateBytes));
+          for(const bytes of parts)data=applyPublicPatch(data,JSON.parse(dec.decode(bytes)),name);
+        }
+        clear=enc.encode(JSON.stringify(data));
+      }else throw new Error('Invalid public map update.');
+    }else clear=await decryptBase(desc,localKey);
     if(localEpoch!==epoch||!key)throw new Error('The session is locked.');
     return clear;
   }
@@ -29,7 +119,7 @@
     if(!key||!manifest)throw new Error('Enter the access password first.');
     if(!manifest[name])throw new Error('The requested map asset is missing: '+name);
     if(!cache.has(name)){
-      const p=decrypt(manifest[name]);cache.set(name,p);
+      const p=decrypt(manifest[name],name);cache.set(name,p);
       p.catch(()=>{if(cache.get(name)===p)cache.delete(name);});
     }
     return cache.get(name);
@@ -64,7 +154,7 @@
   }
   function lock(){epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();}
   async function openWorkspace(){
-    manifest=JSON.parse(dec.decode(await decrypt(boot.manifest)));el('password').value='';
+    manifest=JSON.parse(dec.decode(await decrypt(boot.manifest,'__manifest__')));el('password').value='';
     el('access').style.display='none';el('workspace').style.display='block';
     el('lock').hidden=boot.access==='public';
     el('toolbar').hidden=!!boot.standalone;el('workspace').classList.toggle('standalone',!!boot.standalone);
