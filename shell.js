@@ -7,15 +7,18 @@
   const el=id=>document.getElementById(id);
   const base=new URL('.',location.href);
   async function request(path,format='arrayBuffer'){
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
-    try{
-      const r=await fetch(new URL(path,base),{signal:controller.signal,credentials:'same-origin',cache:path.startsWith('assets/')?'force-cache':'no-cache'});
-      if(!r.ok)throw new Error('A map file could not be loaded. Please try again.');
-      return await r[format]();
-    }catch(error){
-      if(error.name==='AbortError')throw new Error('The download took too long. Please try again.');
-      throw error;
-    }finally{clearTimeout(timer);}
+    for(let attempt=0;attempt<2;attempt++){
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+      try{
+        const r=await fetch(new URL(path,base),{signal:controller.signal,credentials:'same-origin',cache:attempt?'reload':'no-cache'});
+        if(!r.ok){const error=new Error('A map file could not be loaded. Please try again.');error.status=r.status;error.assetPath=path;throw error;}
+        return await r[format]();
+      }catch(error){
+        if(attempt===0)continue;
+        if(error.name==='AbortError')throw new Error('The download took too long. Please try again.');
+        throw error;
+      }finally{clearTimeout(timer);}
+    }
   }
   async function assetBytes(desc){
     const safePath=p=>typeof p==='string'&&p===p.trim()&&/^assets\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(p);
@@ -150,7 +153,7 @@
       el('view').srcdoc=page.replace('<head>','<head><base href="'+base.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">');
       el('routeLabel').textContent=name.startsWith('map=')?name.slice(4).replace(/_/g,' '):'';
       window.WBVault.status('');
-    }catch(e){if(serial===routeSerial){window.WBVault.status('');el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">This view could not be opened. <button onclick="parent.WBVault.go(\'"+name+"\')">Try again</button></p>';}}
+    }catch(e){if(serial===routeSerial){console.error('The requested view could not be opened.',{route:name,error:e});window.WBVault.status('');el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">This view could not be opened. <button onclick="parent.location.reload()">Try again</button></p>';}}
   }
   function lock(){epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();}
   async function openWorkspace(){
