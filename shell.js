@@ -105,7 +105,14 @@
       if(!patchObject(update)||Object.keys(update).length!==1)throw new Error('Invalid public map update.');
       if(Object.prototype.hasOwnProperty.call(update,'file')){
         if(desc.mime!=='text/html'||typeof name!=='string'||!name.startsWith('page/'))throw new Error('Invalid public page update.');
-        clear=await publicUpdateBytes(update.file);
+        const file=update.file;
+        if(!patchObject(file)||(Object.prototype.hasOwnProperty.call(file,'format')&&file.format!=='public-page-v1'))throw new Error('Invalid public page format.');
+        clear=await publicUpdateBytes(file);
+        if(file.format==='public-page-v1'){
+          const page=JSON.parse(dec.decode(clear));
+          if(!patchObject(page)||Object.keys(page).length!==3||page.format!=='public-page-v1'||page.asset!==name||typeof page.html!=='string')throw new Error('Invalid public page envelope.');
+          clear=enc.encode(page.html);
+        }
       }else if(Object.prototype.hasOwnProperty.call(update,'patches')){
         if(desc.mime!=='application/json'||!Array.isArray(update.patches)||!update.patches.length||update.patches.length>1024||typeof name!=='string')throw new Error('Invalid public JSON update.');
         let data=JSON.parse(dec.decode(await decryptBase(desc,localKey)));
