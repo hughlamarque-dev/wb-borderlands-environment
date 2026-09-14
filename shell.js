@@ -2,7 +2,7 @@
 (() => {
   const enc=new TextEncoder(),dec=new TextDecoder();
   const un64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-  let boot=null,key=null,manifest=null,epoch=0,routeSerial=0;
+  let boot=null,key=null,manifest=null,epoch=0,routeSerial=0,previewKey=null,previewEpoch=0;
   const cache=new Map(),urls=new Set();
   const el=id=>document.getElementById(id);
   const base=new URL('.',location.href);
@@ -95,8 +95,34 @@
     if(desc.gzip)clear=await new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
     return clear;
   }
+  function previewConfig(){
+    const value=boot.preview_access;if(value===undefined)return null;
+    const routes=['map=moyale_borana','map=mandera_triangle','map=dikhil'];
+    if(!patchObject(value)||value.format!=='preview-access-v1'||!Array.isArray(value.routes)||value.routes.length!==3||new Set(value.routes).size!==3||!value.routes.every(v=>routes.includes(v)))throw new Error('Invalid development access configuration.');
+    return value;
+  }
+  function previewRoute(name){return previewConfig()?.routes.includes(name)||false;}
+  async function unwrapPreview(password){
+    const config=previewConfig();
+    if(!config||config.kdf?.name!=='PBKDF2'||config.kdf?.hash!=='SHA-256'||config.kdf?.iterations!==600000||typeof config.kdf?.salt!=='string'||un64(config.kdf.salt).length!==16||typeof config.wrap?.nonce!=='string'||un64(config.wrap.nonce).length!==12||typeof config.wrap?.ciphertext!=='string'||un64(config.wrap.ciphertext).length!==48)throw new Error('Invalid development access configuration.');
+    const material=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
+    const wrapping=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:un64(config.kdf.salt),iterations:config.kdf.iterations},material,{name:'AES-GCM',length:256},false,['decrypt']);
+    let raw;
+    try{raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(config.wrap.nonce),additionalData:enc.encode('preview:'+boot.build)},wrapping,un64(config.wrap.ciphertext));}
+    catch(_){throw new Error('The password was not accepted. Please try again.');}
+    try{return await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);}
+    finally{new Uint8Array(raw).fill(0);}
+  }
+  async function protectedPage(file,name,localPreviewKey){
+    if(!localPreviewKey||!previewRoute(name.slice(5)))throw new Error('Enter the development access password first.');
+    const page=JSON.parse(dec.decode(await publicUpdateBytes(file)));
+    if(!patchObject(page)||Object.keys(page).length!==5||page.format!=='password-page-v1'||page.asset!==name||page.gzip!==true||typeof page.nonce!=='string'||un64(page.nonce).length!==12||typeof page.ciphertext!=='string')throw new Error('Invalid protected page envelope.');
+    let clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(page.nonce),additionalData:enc.encode('preview:'+boot.build+'|'+name)},localPreviewKey,un64(page.ciphertext));
+    return new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
   async function decrypt(desc,name){
     const localKey=key,localEpoch=epoch;if(!localKey)throw new Error('The session is locked.');
+    const localPreviewKey=boot.preview_access?previewKey:null,localPreviewEpoch=boot.preview_access?previewEpoch:0;
     const updates=boot.public_updates;
     if(updates!==undefined&&(boot.access!=='public'||!patchObject(updates)))throw new Error('Invalid public map updates.');
     const hasUpdate=updates&&Object.prototype.hasOwnProperty.call(updates,desc.path),update=hasUpdate?updates[desc.path]:null;
@@ -106,8 +132,8 @@
       if(Object.prototype.hasOwnProperty.call(update,'file')){
         if(desc.mime!=='text/html'||typeof name!=='string'||!name.startsWith('page/'))throw new Error('Invalid public page update.');
         const file=update.file;
-        if(!patchObject(file)||(Object.prototype.hasOwnProperty.call(file,'format')&&file.format!=='public-page-v1'))throw new Error('Invalid public page format.');
-        clear=await publicUpdateBytes(file);
+        if(!patchObject(file)||(Object.prototype.hasOwnProperty.call(file,'format')&&!['public-page-v1','password-page-v1'].includes(file.format)))throw new Error('Invalid public page format.');
+        clear=file.format==='password-page-v1'?await protectedPage(file,name,localPreviewKey):await publicUpdateBytes(file);
         if(file.format==='public-page-v1'){
           const page=JSON.parse(dec.decode(clear));
           if(!patchObject(page)||Object.keys(page).length!==3||page.format!=='public-page-v1'||page.asset!==name||typeof page.html!=='string')throw new Error('Invalid public page envelope.');
@@ -124,10 +150,12 @@
       }else throw new Error('Invalid public map update.');
     }else clear=await decryptBase(desc,localKey);
     if(localEpoch!==epoch||!key)throw new Error('The session is locked.');
+    if(boot.preview_access&&name?.startsWith('page/')&&previewRoute(name.slice(5))&&(localPreviewEpoch!==previewEpoch||!previewKey))throw new Error('The development session is locked.');
     return clear;
   }
   async function asset(name){
     if(!key||!manifest)throw new Error('Enter the access password first.');
+    if(boot.preview_access&&name.startsWith('page/')&&previewRoute(name.slice(5))&&!previewKey)throw new Error('Enter the development access password first.');
     if(!manifest[name])throw new Error('The requested map asset is missing: '+name);
     if(!cache.has(name)){
       const p=decrypt(manifest[name],name);cache.set(name,p);
@@ -150,8 +178,16 @@
     if(!allowed.includes(name)){location.hash=boot.default_route||'home';return;}
     const hideToolbar=!!boot.standalone||name==='home';
     el('toolbar').hidden=hideToolbar;el('workspace').classList.toggle('standalone',hideToolbar);
+    el('previewAccess').hidden=true;el('view').hidden=false;el('previewPassword').value='';el('previewMessage').textContent='';
+    el('lock').hidden=boot.access==='public'&&!previewKey;el('lock').textContent=boot.access==='public'?'Lock previews':'Lock';
     // Destroy the previous map before releasing its image URLs and data cache.
     el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">Opening…</p>';release();
+    if(boot.preview_access&&previewRoute(name)&&!previewKey){
+      el('view').srcdoc='';el('view').hidden=true;el('previewAccess').hidden=false;
+      const labels={'map=moyale_borana':'Moyale–Borana','map=mandera_triangle':'Mandera Triangle','map=dikhil':'Dikhil'};
+      el('previewTitle').textContent=labels[name]+' Cluster';el('previewNotice').textContent=previewConfig().message||'Under Development, see Karamoja Cluster for live example';
+      el('routeLabel').textContent=labels[name];window.WBVault.status('');el('previewPassword').focus();return;
+    }
     window.WBVault.status('Opening '+(name.startsWith('map=')?'map':name==='analysis'?'analysis':'maps')+'…');
     try{
       const page=await window.WBVault.text('page/'+name);
@@ -173,7 +209,10 @@
       el('view').srcdoc='<!doctype html><meta charset="utf-8"><title>Unable to open this view</title><main style="font:15px/1.5 Arial,sans-serif;padding:24px;max-width:760px;color:#183b3b"><h1 style="font-size:22px;margin:0 0 12px">Unable to open this view</h1><p>'+escape(text(e.message||'The requested view could not be loaded.'))+'</p><dl style="font-size:13px;overflow-wrap:anywhere">'+details.map(([label,value])=>'<div style="margin:8px 0"><dt style="font-weight:600">'+escape(label)+'</dt><dd style="margin:0">'+escape(text(value))+'</dd></div>').join('')+'</dl><button style="font:inherit;padding:8px 16px;cursor:pointer" onclick="parent.location.reload()">Try again</button></main>';
     }}
   }
-  function lock(){epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();}
+  function lock(){
+    if(boot.access==='public'){previewEpoch++;previewKey=null;el('previewPassword').value='';release();return route();}
+    epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();
+  }
   async function openWorkspace(){
     manifest=JSON.parse(dec.decode(await decrypt(boot.manifest,'__manifest__')));el('password').value='';
     el('access').style.display='none';el('workspace').style.display='block';
@@ -182,6 +221,16 @@
     await route();
   }
   el('lock').addEventListener('click',lock);window.addEventListener('hashchange',route);
+  el('previewUnlock').addEventListener('submit',async event=>{
+    event.preventDefault();const serial=routeSerial,accessEpoch=previewEpoch;el('previewMessage').textContent='';el('previewUnlockButton').disabled=true;
+    const password=el('previewPassword').value;el('previewPassword').value='';
+    try{
+      const unlocked=await unwrapPreview(password);
+      if(serial!==routeSerial||accessEpoch!==previewEpoch)return;
+      previewKey=unlocked;await route();
+    }catch(error){if(serial===routeSerial){el('previewMessage').textContent=error.message||'This preview could not be unlocked.';el('previewPassword').focus();}}
+    finally{el('previewUnlockButton').disabled=false;}
+  });
   el('unlock').addEventListener('submit',async event=>{
     event.preventDefault();el('message').textContent='';el('unlockButton').disabled=true;
     try{
