@@ -194,7 +194,10 @@
       if(serial!==routeSerial||!key)return;
       // srcdoc is same-origin. All executable application content is authenticated
       // before insertion; fetched project text is escaped by the map application.
-      el('view').srcdoc=page.replace('<head>','<head><base href="'+base.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">');
+      const mobileStyle="<style id=\"mobile-views-layout-24\">/* Mobile: one continuous panel, never a clipped, independently scrolling view list. */\n@media(max-width:1024px){\n .panel.mobile-open{display:flex;flex-direction:column;gap:12px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:#fff;scroll-padding-top:64px;-webkit-overflow-scrolling:touch}\n .panel>.panel-heading{position:sticky;top:0;z-index:6;flex:0 0 auto;min-height:44px;padding-bottom:8px;background:#fff;box-shadow:0 -16px 0 0 #fff}\n .panel>.preset-grid{flex:0 0 auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(50px,auto);overflow:visible;max-height:none;scrollbar-gutter:auto;padding-right:0;gap:6px}\n .panel>.preset-grid button{height:auto;min-height:50px}\n .panel>.view-options,.panel>.map-key,.panel>.panel-footer{flex:0 0 auto;overflow:visible;max-height:none;scrollbar-gutter:auto;padding-right:0}\n}\n</style>";
+      const mobileNavigation="<script>document.getElementById('mobileLayers').addEventListener('click',()=>{const panel=document.querySelector('.panel');if(panel.classList.contains('mobile-open'))panel.scrollTop=0;});</script>";
+      const displayPage=name.startsWith('map=')&&page.includes('id="mobileLayers"')?page.replace('</head>',mobileStyle+'</head>').replace('</body>',mobileNavigation+'</body>'):page;
+      el('view').srcdoc=displayPage.replace('<head>','<head><base href="'+base.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">');
       el('routeLabel').textContent=name.startsWith('map=')?name.slice(4).replace(/_/g,' '):'';
       window.WBVault.status('');
     }catch(e){if(serial===routeSerial){
