@@ -97,8 +97,8 @@
   }
   function previewConfig(){
     const value=boot.preview_access;if(value===undefined)return null;
-    const routes=['map=moyale_borana','map=mandera_triangle','map=dikhil'];
-    if(!patchObject(value)||value.format!=='preview-access-v1'||!Array.isArray(value.routes)||value.routes.length!==3||new Set(value.routes).size!==3||!value.routes.every(v=>routes.includes(v)))throw new Error('Invalid development access configuration.');
+    const routes=['map=moyale_borana','map=dikhil'];
+    if(!patchObject(value)||value.format!=='preview-access-v1'||!Array.isArray(value.routes)||value.routes.length!==routes.length||new Set(value.routes).size!==routes.length||!value.routes.every(v=>routes.includes(v)))throw new Error('Invalid development access configuration.');
     return value;
   }
   function previewRoute(name){return previewConfig()?.routes.includes(name)||false;}
@@ -115,7 +115,11 @@
   }
   async function protectedPage(file,name,localPreviewKey){
     if(!localPreviewKey||!previewRoute(name.slice(5)))throw new Error('Enter the development access password first.');
-    const page=JSON.parse(dec.decode(await publicUpdateBytes(file)));
+    return decodePreviewPage(await publicUpdateBytes(file),name,localPreviewKey);
+  }
+  async function decodePreviewPage(raw,name,localPreviewKey){
+    if(!localPreviewKey||!previewRoute(name.slice(5)))throw new Error('Enter the development access password first.');
+    const page=JSON.parse(dec.decode(raw));
     if(!patchObject(page)||Object.keys(page).length!==5||page.format!=='password-page-v1'||page.asset!==name||page.gzip!==true||typeof page.nonce!=='string'||un64(page.nonce).length!==12||typeof page.ciphertext!=='string')throw new Error('Invalid protected page envelope.');
     let clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(page.nonce),additionalData:enc.encode('preview:'+boot.build+'|'+name)},localPreviewKey,un64(page.ciphertext));
     return new Response(new Blob([clear]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
@@ -148,7 +152,10 @@
         }
         clear=enc.encode(JSON.stringify(data));
       }else throw new Error('Invalid public map update.');
-    }else clear=await decryptBase(desc,localKey);
+    }else{
+      clear=await decryptBase(desc,localKey);
+      if(desc.preview===true)clear=await decodePreviewPage(clear,name,localPreviewKey);
+    }
     if(localEpoch!==epoch||!key)throw new Error('The session is locked.');
     if(boot.preview_access&&name?.startsWith('page/')&&previewRoute(name.slice(5))&&(localPreviewEpoch!==previewEpoch||!previewKey))throw new Error('The development session is locked.');
     return clear;
@@ -185,7 +192,7 @@
     if(boot.preview_access&&previewRoute(name)&&!previewKey){
       el('view').srcdoc='';el('view').hidden=true;el('previewAccess').hidden=false;
       const labels={'map=moyale_borana':'Moyale–Borana','map=mandera_triangle':'Mandera Triangle','map=dikhil':'Dikhil'};
-      el('previewTitle').textContent=labels[name]+' Cluster';el('previewNotice').textContent=previewConfig().message||'Under Development, see Karamoja Cluster for live example';
+      el('previewTitle').textContent=labels[name]+' Cluster';el('previewNotice').textContent=previewConfig().message||'This cluster is still under development. Explore the Mandera and Karamoja clusters below.';
       el('routeLabel').textContent=labels[name];window.WBVault.status('');el('previewPassword').focus();return;
     }
     window.WBVault.status('Opening '+(name.startsWith('map=')?'map':name==='analysis'?'analysis':'maps')+'…');
@@ -213,8 +220,9 @@
     }}
   }
   function lock(){
-    if(boot.access==='public'){previewEpoch++;previewKey=null;el('previewPassword').value='';release();return route();}
-    epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();
+    previewEpoch++;previewKey=null;el('previewPassword').value='';
+    if(boot.access==='public'){release();return route();}
+    epoch++;routeSerial++;key=null;manifest=null;el('view').srcdoc='';el('previewAccess').hidden=true;release();el('workspace').style.display='none';el('access').style.display='block';el('password').value='';el('message').textContent='';window.WBVault.status('');el('password').focus();
   }
   async function openWorkspace(){
     manifest=JSON.parse(dec.decode(await decrypt(boot.manifest,'__manifest__')));el('password').value='';
