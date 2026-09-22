@@ -186,7 +186,6 @@
     const hideToolbar=!!boot.standalone||name==='home';
     el('toolbar').hidden=hideToolbar;el('workspace').classList.toggle('standalone',hideToolbar);
     el('previewAccess').hidden=true;el('view').hidden=false;el('previewPassword').value='';el('previewMessage').textContent='';
-    el('lock').hidden=boot.access==='public'&&!previewKey;el('lock').textContent=boot.access==='public'?'Lock previews':'Lock';
     // Destroy the previous map before releasing its image URLs and data cache.
     el('view').srcdoc='<!doctype html><p style="font:15px Arial;padding:24px">Opening…</p>';release();
     if(boot.preview_access&&previewRoute(name)&&!previewKey){
@@ -201,11 +200,13 @@
       if(serial!==routeSerial||!key)return;
       // srcdoc is same-origin. All executable application content is authenticated
       // before insertion; fetched project text is escaped by the map application.
-      const mobileStyle="<style id=\"mobile-views-layout-24\">/* Mobile: one continuous panel, never a clipped, independently scrolling view list. */\n@media(max-width:1024px){\n .panel.mobile-open{display:flex;flex-direction:column;gap:12px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:#fff;scroll-padding-top:64px;-webkit-overflow-scrolling:touch}\n .panel>.panel-heading{position:sticky;top:0;z-index:6;flex:0 0 auto;min-height:44px;padding-bottom:8px;background:#fff;box-shadow:0 -16px 0 0 #fff}\n .panel>.preset-grid{flex:0 0 auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(50px,auto);overflow:visible;max-height:none;scrollbar-gutter:auto;padding-right:0;gap:6px}\n .panel>.preset-grid button{height:auto;min-height:50px}\n .panel>.view-options,.panel>.map-key,.panel>.panel-footer{flex:0 0 auto;overflow:visible;max-height:none;scrollbar-gutter:auto;padding-right:0}\n}\n</style>";
+      const mobileStyle="<style id=\"mobile-views-layout-24\">/* Mobile: one continuous panel, never a clipped, independently scrolling view list. */\n@media(max-width:1024px){\n .panel.mobile-open{display:flex;flex-direction:column;gap:12px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:#fff;scroll-padding-top:64px;-webkit-overflow-scrolling:touch}\n .panel>.panel-heading{position:sticky;top:0;z-index:6;flex:0 0 auto;min-height:44px;padding-bottom:8px;background:#fff;box-shadow:0 -16px 0 0 #fff}\n .panel>.preset-grid{flex:0 0 auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(44px,auto);overflow:visible;max-height:none;scrollbar-gutter:auto;padding-right:0;gap:6px}\n .panel>.preset-grid button{height:auto;min-height:44px}\n .panel>.view-options,.panel>.map-key,.panel>.panel-footer{flex:0 0 auto;overflow:visible;max-height:none;scrollbar-gutter:auto;padding-right:0}\n}\n</style>";
       const mobileNavigation="<script>document.getElementById('mobileLayers').addEventListener('click',()=>{const panel=document.querySelector('.panel');if(panel.classList.contains('mobile-open'))panel.scrollTop=0;});</script>";
       const displayPage=name.startsWith('map=')&&page.includes('id="mobileLayers"')?page.replace('</head>',mobileStyle+'</head>').replace('</body>',mobileNavigation+'</body>'):page;
       el('view').srcdoc=displayPage.replace('<head>','<head><base href="'+base.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">');
-      el('routeLabel').textContent=name.startsWith('map=')?name.slice(4).replace(/_/g,' '):'';
+      const routeTitles={'map=moyale_borana':'Moyale–Borana','map=mandera_triangle':'Mandera Triangle','map=karamoja':'Karamoja','map=dikhil':'Dikhil',analysis:'Analysis'};
+      el('routeLabel').textContent=routeTitles[name]||'';
+      document.title=routeTitles[name]?routeTitles[name]+' · Borderland maps':'Borderland maps';
       window.WBVault.status('');
     }catch(e){if(serial===routeSerial){
       console.error('The requested view could not be opened.',{route:name,error:e});window.WBVault.status('');
@@ -227,11 +228,10 @@
   async function openWorkspace(){
     manifest=JSON.parse(dec.decode(await decrypt(boot.manifest,'__manifest__')));el('password').value='';
     el('access').style.display='none';el('workspace').style.display='block';
-    el('lock').hidden=boot.access==='public';
     el('toolbar').hidden=!!boot.standalone;el('workspace').classList.toggle('standalone',!!boot.standalone);
     await route();
   }
-  el('lock').addEventListener('click',lock);window.addEventListener('hashchange',route);
+  window.addEventListener('hashchange',route);
   el('previewUnlock').addEventListener('submit',async event=>{
     event.preventDefault();const serial=routeSerial,accessEpoch=previewEpoch;el('previewMessage').textContent='';el('previewUnlockButton').disabled=true;
     const password=el('previewPassword').value;el('previewPassword').value='';
