@@ -1,0 +1,87 @@
+{
+  "maps": {
+    "moyale_borana": {
+      "cells": 2694,
+      "repaired_cells": 0,
+      "derived_repairs": 1,
+      "grid_difference_area_ratio": 6.151766222540113e-06
+    },
+    "mandera_triangle": {
+      "cells": 2638,
+      "repaired_cells": 5,
+      "derived_repairs": 6,
+      "grid_difference_area_ratio": 6.91292262505195e-06
+    },
+    "karamoja": {
+      "cells": 3415,
+      "repaired_cells": 11,
+      "derived_repairs": 12,
+      "grid_difference_area_ratio": 1.8291271076744976e-05
+    },
+    "dikhil": {
+      "cells": 753,
+      "repaired_cells": 2,
+      "derived_repairs": 3,
+      "grid_difference_area_ratio": 4.14230974796837e-05
+    }
+  },
+  "qgis_native": "not tested; independent GEOS/PROJ adapter",
+  "actual_duplicate_pbf_check": {
+    "retained_way_updates": 9983,
+    "retained_places": 100,
+    "retained_barriers": 126,
+    "countries": [
+      {
+        "country": "Djibouti",
+        "index_type": "sparse_file_array"
+      },
+      {
+        "country": "Djibouti",
+        "index_type": "sparse_file_array"
+      }
+    ],
+    "retained_node_cache_files": [],
+    "unique_ways": 9983,
+    "unique_places": 100,
+    "unique_barriers": 126
+  },
+  "partial_extract_spatial_check": {
+    "map": "dikhil",
+    "input": "Djibouti only",
+    "publishable": false,
+    "all_output_geometries_valid": true,
+    "road_length_conservation_error_m": -8.731149137020111e-10,
+    "native_QGIS_GUI_and_providers_checked": false
+  },
+  "verified_at_utc": "2026-10-09T14:43:50.670867+00:00",
+  "unit_tests_passed": 40,
+  "stage1_local_run": {
+    "qgis": "3.38.3-Grenoble",
+    "verified_inputs": 22,
+    "valid_project_layers": 143,
+    "original_project_unchanged": true
+  },
+  "actual_fews_check": {
+    "published_rows": 2256,
+    "mass_rows": 1312,
+    "item_rows": 451,
+    "points": [
+      143953,
+      257968
+    ],
+    "mass_source_label": "Weight"
+  },
+  "prior_actual_gems_check": {
+    "source_sha256": "c726046f662e4d0a7c485bef05bc016f0d575c40ca2dec5ae1d181d77a461e5b",
+    "source_rows": 11287,
+    "project_ids": 69,
+    "directory_relationships": {
+      "focal": 40,
+      "context_only": 24,
+      "absent": 5
+    },
+    "note": "Original file was checked before the workspace reset; it is not published."
+  },
+  "stage2_native_windows_qgis_run": "pending",
+  "website_data_modified": false
+}

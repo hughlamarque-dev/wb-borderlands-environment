@@ -1,8 +1,49 @@
 # World Bank corridor integration
 
-Stage 1 is implemented here. Connectivity processing and live-map integration
-are **not** implemented by this launcher. Keeping the code in the existing
-repository allows subsequent changes to be made directly on GitHub.
+Stage 1 passed Hugh's local QGIS **3.38.3-Grenoble** run: all 22 inputs verified,
+all 143 project layers valid, and the original project file unchanged.
+Stage 2 processing is implemented. Its first native Windows/QGIS run is still
+required before results are integrated into the live website.
+
+## Run Stage 2
+
+1. Download [START_WB_STAGE2.cmd](https://github.com/hughlamarque-dev/wb-borderlands-environment/raw/refs/heads/main/tools/corridor-integration/START_WB_STAGE2.cmd).
+2. Double-click it. QGIS opens the original project at
+   C:\Users\hughl\OneDrive\Desktop\Public Maps\Public Experiment.qgz and starts
+   processing. Keep that new QGIS window open. If the supplied GEMS data.csv
+   is not found in Downloads or beside the project, select it in one file chooser.
+3. When finished, the processed project and report folder open.
+   Upload **WB_STAGE2_REPORT.zip** in the working conversation.
+
+No separate Python installation, pip command or QGIS console entry is needed.
+The launcher uses QGIS's own Python and the verified Stage 1 downloads. A
+nonstandard QGIS installation may need one launcher-file selection. It changes
+no execution policy and requires no administrator privileges.
+
+It automatically fetches this additional data input:
+[public baseline, 807,214 bytes](https://raw.githubusercontent.com/hughlamarque-dev/wb-borderlands-environment/main/tools/corridor-integration/baselines/2f10237a8e335e5acf049f801915e3153ac96c264ac03897bc2952b80d54b37f.json.gz).
+It preserves the existing four boundaries, **9,500 grid cell IDs and geometries**,
+public project-directory links and official World Bank metadata from repository
+snapshot d4803fbd5e7a711808312a36d54d41ab69dffeb9. Its SHA-256 is its filename.
+It contains no GEMS coordinates or event/raster values. Checksum-pinned parser
+wheel URLs for supported Windows 64-bit Python versions are listed in
+stage2_config.json. The matching parser is extracted into a task-local directory
+without changing QGIS's installed packages.
+
+Outputs go beside the original project under
+WB_Corridor_Integration\runs_stage2\<run>:
+
+- WB_Corridor_Stage2.gpkg;
+- Public_Experiment_WB_Stage2.qgz, preserving existing layers;
+- processed GeoJSONs and observation tables in web_outputs;
+- WB_STAGE2_REPORT.zip, including processed review locations and observations.
+
+The original project is never saved over. The ZIP excludes raw PBFs, the full
+original GEMS CSV, project and GeoPackage. It is not uploaded automatically.
+The launcher makes no website changes or GitHub login requests. Allow processing
+time and working space; at least 2 GiB free is checked at startup, a starting guard
+rather than a final peak-usage guarantee. Completed topology caches are checked
+and reused. Interrupted incomplete caches are retained, not treated as complete.
 
 ## Run Stage 1
 
@@ -24,8 +65,7 @@ stage will require additional space, assessed after local inspection.
 If Windows or an organization security policy prevents the file from running,
 report the exact message. Do not disable antivirus, administrator controls or
 organization policies. This launcher changes no execution policy and requires
-no administrator privileges. It has not yet been run on Hugh's Windows/QGIS
-installation.
+no administrator privileges. Stage 1 has passed its local Windows/QGIS run; Stage 2 needs its first native run.
 
 ## Direct downloads
 
@@ -82,7 +122,7 @@ SHA-256, reported units and published date coverage. A rerun reuses the existing
 verified CSV snapshot rather than silently refreshing it. A later refresh should
 use a new input folder or an explicit, reviewed refresh operation.
 
-## What the launcher does and does not do
+## What Stage 1 does
 
 It inventories the current project's layers without reading their feature data,
 redacts remote source URLs and connection strings, downloads source inputs,
@@ -103,56 +143,89 @@ GEMS records, credentials, or QGIS project itself. It is not uploaded automatica
 The original project is never saved by the script, no new data layers are added,
 and no GitHub login or publication occurs on the user's computer in Stage 1.
 
-## Stage 2: processing specification, pending implementation
+## Stage 2 definitions
 
-Use the current map boundaries and approximately 10 km hexagons. Review a
-named corridor spine rather than treating every primary street as a corridor.
-Build network topology from shared OSM node IDs, merging overlapping country
-extracts by OSM identity/version. Include local streets and preserve access,
-one-way, bridge, tunnel and layer tags. Grade-separated crossings without a
-connecting ramp are not junctions. Merge the nodes belonging to one functional
-interchange; do not count degree-two segmentation nodes as access junctions.
+This first implementation counts shared OSM junction **nodes** on all motorway,
+trunk, primary and associated link ways in the focus areas. It does not select
+a named corridor spine or merge functional interchanges. A junction needs a
+shared original node ID, at least three distinct statically accessible neighbours,
+and incident major and local edges. Degree-two segmentation nodes and geometric
+crossings without shared IDs are excluded. Overlapping country records are
+deduplicated by OSM identity/version; same-version conflicts stop processing.
 
-Proposed outputs are unique local-access junctions per hexagon, junctions per
-10 km of corridor, and the count/share with an **off-corridor** local-network path
-to a mapped town/village within 5 km. Test 2/5/10 km sensitivity, preserve the
-town-to-road snap distance, and use a network halo before clipping. Keep place
-types so villages are not labelled urban. Use a metric CRS, assign each junction
-to one hexagon, flag small corridor-length denominators, and leave no-corridor
-cells not applicable rather than zero. A lack of mapped feeders may reflect
-OSM incompleteness; it is not proof of territorial isolation or economic impact.
+Grid outputs retain raw node counts and mapped major-road kilometres, node
+counts per 10 km (with a minimum 0.5 km denominator), and the count/share that
+reach OSM city/town nodes via local roads within **2, 5 and 10 km**. A separate
+measure includes villages. Paths exclude all major edges and include the
+straight-line place-to-local-road snap distance, limited to 250 m. Static motor
+access, one-way directions and blocking node barriers are considered; conditional
+access/direction roads are excluded. Turn restrictions, dynamic border closures
+and actual surface passability are not modelled. A 15 km network halo is used.
 
-The GHSL 2030 layers in the older inventory are not a present-day settlement
-baseline. Initial results concern access to **mapped settlements**, not access
-for all residents. Historical settlement footprints and a population-access
-metric need separate source/units/coverage checks and verified downloads if
-missing. Existing population rasters are not automatically treated as compatible.
+Length uses a local AEQD metric CRS. Shared grid-boundary lengths have one
+owner. Published rounding gaps are reported as unassigned road length or
+null-cell junctions rather than forced into another cell. No-major-road cells,
+undefined shares and small-denominator normalized values remain null.
+Divided roads can contribute multiple junction nodes and carriageway lengths.
+These are raw mapped node/road measures, not interchange or centreline counts.
+OSM incompleteness and missing place nodes limit interpretation. These measures
+do not establish territorial isolation, traffic, population access or economic
+impact. GHSL 2030 is not used as a present-day settlement baseline.
 
-GEMS integration uses exact World Bank project IDs, one canonical project with
-many source location records, and separate family/financing relationships.
-Retain source row identities and precision/coverage limitations; do not equate a
-coordinate with a completed intervention. Reconcile with the existing directory,
-promote context-only projects only after scope review, quarantine questionable
-locations, and never allocate a whole project's financing to each point.
-Keep the user's original GEMS CSV locally until publication eligibility and
-the required public fields have been reviewed.
+Independent checks found small invalid geometries in four published boundaries
+and 18 cells. GEOS linework repair is applied only to derived copies, preserving
+polygon components and recording hashes and area changes. Changes over 0.1%
+stop the run. Local/published boundary and published grid/boundary differences
+over 0.1% also stop it. The baseline and source layers remain unchanged.
+Repaired cells retain their published IDs.
 
-Stage 2 should save new GeoPackages and a separate QGIS project copy. Stage 3
-should add only validated web-sized outputs to the existing GitHub maps,
-preserving current layers, password/access behavior, source attribution and
-the deployment workflow. No invented metric values, inferred traffic flows,
-placeholder density scores or unverified GEMS coordinates should be published.
+Seven review layer types are exported per map: connectivity grid, junction nodes,
+mapped places, major roads, GEMS locations, GEMS review locations and FEWS
+reference places. Empty layers remain in GeoJSON reports and are omitted from
+the GeoPackage. Junction styling distinguishes mapped town paths within 5 km.
 
-## Sources and maintenance
+## GEMS and FEWS integration
 
-- [Geofabrik Africa downloads](https://download.geofabrik.de/africa.html)
-- [OpenStreetMap copyright and ODbL](https://www.openstreetmap.org/copyright)
-- [FEWS NET API documentation](https://help.fews.net/fde/v3/fews-net-api)
-- [QGIS command-line startup options](https://docs.qgis.org/3.44/en/docs/user_manual/introduction/qgis_configuration.html)
+GEMS locations link by exact World Bank project ID to one canonical project and
+existing directory/family records. Separate project IDs are retained when
+coordinates coincide. The supplied file has 11,287 rows and 69 project IDs:
+40 match focal directory entries, 24 context-only entries, and 5 are absent.
+Country labels are not claimed to have been independently checked. Dates,
+coordinate precision and implementation status were not supplied. A coordinate
+is not evidence of a completed intervention; no project financing is allocated
+to points. The suspicious P163980 marine-project location in Mandera is kept
+in the review layer. Pre-2020 closing dates receive a historical review flag;
+project status is not inferred from those dates. Distance to a major road is
+straight-line distance, not network access or a causal relationship.
 
-Rebuild the self-contained launcher after editing its three bundled source files
-or the PowerShell template: `python build_launcher.py`. Run
-`python -m unittest discover -s tests -v` from this directory. Tests cover the
-download validation and bundle integrity; Windows/QGIS GUI behavior still
-requires a real local run. All scripts live in this repository, while raw
-downloaded inputs and local reports remain on the user's computer.
+FEWS catalogue references identify five physical places: Moyale, Belet Hawo/Bula
+Hawo, Nimule, Galafi and Loyado. Reporting sides and livestock series stay
+separate. Balho observations are retained in the table while its coordinates
+are quarantined. Published public monthly observations retain identities,
+sources, commodities, flows and units. Recognized mass is converted to tonnes;
+item and volume units remain separate. Missing quantities are not zero.
+Rows labelled No Data are excluded even when their source value says zero.
+Raw published record counts are not days monitored or completeness percentages.
+No totals across reporting sides/series or route-level traffic are inferred.
+
+## Stage 3 and maintenance
+
+After reviewing the actual Stage 2 report, integrate validated web-sized outputs
+into the existing GitHub maps, preserving current layers, access behavior,
+attribution and deployment workflow. Source code is published now so it can be
+maintained directly. The launchers do not publish site data or invent results.
+
+Rebuild Stage 1 with python build_launcher.py and Stage 2 with
+python build_stage2_launcher.py after editing bundled files. Run
+python -m unittest discover -s tests -v from this directory.
+Tests cover verified inputs, bundle integrity, topology, directed paths,
+project identities, FEWS missing values and mass/item separation. Actual
+Djibouti PBF parsing and an independent GEOS/PROJ spatial adapter also passed.
+The adapter does not validate native QGIS bindings, providers, GUI or project
+saving; those need the first local Stage 2 run.
+
+Sources:
+[Geofabrik](https://download.geofabrik.de/africa.html),
+[OSM licence](https://www.openstreetmap.org/copyright),
+[FEWS API](https://help.fews.net/fde/v3/fews-net-api),
+[QGIS geometry API](https://api.qgis.org/api/3.38/classQgsGeometry.html).

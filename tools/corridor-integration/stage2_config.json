@@ -1,0 +1,133 @@
+{
+  "format": "wb-corridor-stage2-config-v1",
+  "baseline_sha256": "2f10237a8e335e5acf049f801915e3153ac96c264ac03897bc2952b80d54b37f",
+  "baseline_bytes": 807214,
+  "baseline_url": "https://raw.githubusercontent.com/hughlamarque-dev/wb-borderlands-environment/main/tools/corridor-integration/baselines/2f10237a8e335e5acf049f801915e3153ac96c264ac03897bc2952b80d54b37f.json.gz",
+  "baseline_source_commit": "d4803fbd5e7a711808312a36d54d41ab69dffeb9",
+  "gems_original_sha256": "c726046f662e4d0a7c485bef05bc016f0d575c40ca2dec5ae1d181d77a461e5b",
+  "metric_version": "major-road-junction-nodes-v1",
+  "major_road_definition": "OSM motorway/trunk/primary and their link ways; all such mapped roads, not a reviewed named corridor centreline.",
+  "junction_definition": "A shared OSM node with at least three distinct statically accessible neighbours and incident major and local road edges.",
+  "distance_thresholds_m": [
+    2000,
+    5000,
+    10000
+  ],
+  "maximum_place_snap_m": 250,
+  "network_halo_km": 15,
+  "minimum_normalisation_km": 0.5,
+  "gems_quarantines": [
+    {
+      "project_id": "P163980",
+      "map": "mandera_triangle",
+      "reason": "Inland focus-region location associated with a marine-fisheries project; coordinate/activity verification required."
+    }
+  ],
+  "fews_reference_date": "2026-10-09",
+  "fews_reference_source": "https://fdw.fews.net/api/borderpoint/",
+  "fews_reference_note": "Coordinates copied from the audited public catalogue snapshot, not inferred trade routes.",
+  "fews_points": [
+    {
+      "id": 143949,
+      "name": "Moyale",
+      "country": "KE",
+      "physical_place": "Moyale",
+      "coordinates": [
+        39.0456537,
+        3.555701
+      ]
+    },
+    {
+      "id": 142977,
+      "name": "Belet Hawo",
+      "country": "SO",
+      "physical_place": "Belet Hawo / Bula Hawo",
+      "coordinates": [
+        41.8693997,
+        3.9337939
+      ]
+    },
+    {
+      "id": 257968,
+      "name": "Bula Hawo",
+      "country": "SO",
+      "physical_place": "Belet Hawo / Bula Hawo",
+      "coordinates": [
+        41.8693997,
+        3.9337939
+      ]
+    },
+    {
+      "id": 143953,
+      "name": "Nimule",
+      "country": "SS",
+      "physical_place": "Nimule",
+      "coordinates": [
+        32.0637563,
+        3.5916712
+      ]
+    },
+    {
+      "id": 143870,
+      "name": "Galafi",
+      "country": "DJ",
+      "physical_place": "Galafi",
+      "coordinates": [
+        41.8349657,
+        11.7328782
+      ]
+    },
+    {
+      "id": 143943,
+      "name": "Loyado",
+      "country": "DJ",
+      "physical_place": "Loyado",
+      "coordinates": [
+        43.2589446,
+        11.45754
+      ]
+    },
+    {
+      "id": 192531,
+      "name": "Loyado",
+      "country": "SO",
+      "physical_place": "Loyado",
+      "coordinates": [
+        43.25907,
+        11.46035
+      ]
+    },
+    {
+      "id": 142975,
+      "name": "Balho",
+      "country": "DJ",
+      "physical_place": "Balho",
+      "coordinates": null,
+      "quarantine": "Catalogue latitude/longitude appear reversed; independent placement verification required."
+    }
+  ],
+  "osmium_version": "4.3.1",
+  "osmium_wheels": {
+    "cp310": {
+      "filename": "osmium-4.3.1-cp310-cp310-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/f3/02/1e33cf4aa8b5cccbaa86220ddd865191e32ae246706f54810fafd882ed3f/osmium-4.3.1-cp310-cp310-win_amd64.whl",
+      "sha256": "d387fab4d37fb1e4f2a541fa2a69693f8f2b9f5e60a9a837cb05d0765393347e"
+    },
+    "cp311": {
+      "filename": "osmium-4.3.1-cp311-cp311-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/0f/e2/902fcaa07445debb36077b69dc7a6400e3dd8dc4e558754223f9a36a02f3/osmium-4.3.1-cp311-cp311-win_amd64.whl",
+      "sha256": "fb6e1cc2980cbdf19f8d8723a096b43a1e30bafe7806ad82b174ba007e076fce"
+    },
+    "cp312": {
+      "filename": "osmium-4.3.1-cp312-cp312-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/cf/29/cf51cd5bf1995b67b2a9f837c8e8641bb7df7be36f9365e7770c8b6d60d4/osmium-4.3.1-cp312-cp312-win_amd64.whl",
+      "sha256": "0604b866d4e875fad268b31ecf330ee8dbcf280aac47330b4576f320cffeacb8"
+    },
+    "cp313": {
+      "filename": "osmium-4.3.1-cp313-cp313-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/3b/d1/6de0d37e7d31b5ffd1fb9307775afe26fb5266272e8ab6a43419fd31ce8d/osmium-4.3.1-cp313-cp313-win_amd64.whl",
+      "sha256": "9d5a6c04778ed7d3702df27d06d38a3c8bca7852beb58a87d2a17fac78aa1291"
+    }
+  }
+}
+
