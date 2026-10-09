@@ -1,0 +1,39 @@
+{
+  "manifest_version": 1,
+  "verified_on": "2026-10-09",
+  "project_path": "C:\\Users\\hughl\\OneDrive\\Desktop\\Public Maps\\Public Experiment.qgz",
+  "purpose": "Stage 1 input acquisition only. No connectivity scores or website changes are produced.",
+  "osm_snapshot": "2026-10-08",
+  "osm_attribution": "© OpenStreetMap contributors; extracts by Geofabrik; Open Database Licence (ODbL).",
+  "osm_source_page": "https://download.geofabrik.de/africa.html",
+  "fews_documentation": "https://help.fews.net/fde/v3/fews-net-api",
+  "fews_fields": "id,reporting_country,reporting_country_code,border_point,border_point_id,source,source_country_code,destination,destination_country_code,cpcv2,product,source_organization,source_document,collection_status,start_date,period_date,flow_type,trade_type,unit_type,unit_name,value,common_unit,common_unit_quantity,status,dataseries,collection_schedule,data_usage_policy",
+  "osm_files": [
+    {"country": "Djibouti", "filename": "djibouti-261008.osm.pbf", "url": "https://download.geofabrik.de/africa/djibouti-261008.osm.pbf", "bytes": 7025642, "md5": "d3ba4c853546327440e7cd6227b73135"},
+    {"country": "Ethiopia", "filename": "ethiopia-261008.osm.pbf", "url": "https://download.geofabrik.de/africa/ethiopia-261008.osm.pbf", "bytes": 139883558, "md5": "c12d5f1d6e1b281a622de2a98c602772"},
+    {"country": "Kenya", "filename": "kenya-261008.osm.pbf", "url": "https://download.geofabrik.de/africa/kenya-261008.osm.pbf", "bytes": 351308754, "md5": "d1fb4a7ac1e050afb9b72ff6ad6880a6"},
+    {"country": "Somalia", "filename": "somalia-261008.osm.pbf", "url": "https://download.geofabrik.de/africa/somalia-261008.osm.pbf", "bytes": 164730769, "md5": "4a74a10e55820c2364a84127b9d69001"},
+    {"country": "South Sudan", "filename": "south-sudan-261008.osm.pbf", "url": "https://download.geofabrik.de/africa/south-sudan-261008.osm.pbf", "bytes": 138898986, "md5": "f0903127d33ede499bf4162eb855fa33"},
+    {"country": "Uganda", "filename": "uganda-261008.osm.pbf", "url": "https://download.geofabrik.de/africa/uganda-261008.osm.pbf", "bytes": 371336499, "md5": "442ec7196119b9bde4c63a55a33c0c3b"}
+  ],
+  "fews_points": [
+    {"id": 143949, "name": "Moyale", "country": "KE", "coordinate_review": "catalogue point inside Moyale/Borana"},
+    {"id": 142977, "name": "Belet Hawo", "country": "SO", "coordinate_review": "same catalogue coordinates as Bula Hawo; do not double-count a physical crossing"},
+    {"id": 257968, "name": "Bula Hawo", "country": "SO", "coordinate_review": "distinct livestock series; same catalogue coordinates as Belet Hawo"},
+    {"id": 143953, "name": "Nimule", "country": "SS", "coordinate_review": "catalogue point inside Karamoja"},
+    {"id": 143870, "name": "Galafi", "country": "DJ", "coordinate_review": "catalogue point inside Dikhil"},
+    {"id": 143943, "name": "Loyado (Djibouti reporting side)", "country": "DJ", "coordinate_review": "retain reporting-side identity"},
+    {"id": 192531, "name": "Loyado (Somalia reporting side)", "country": "SO", "coordinate_review": "retain reporting-side identity"},
+    {"id": 142975, "name": "Balho", "country": "DJ", "coordinate_review": "QUARANTINE: catalogue coordinates appear reversed; do not place automatically"}
+  ],
+  "reuse_existing": [
+    "Existing map boundaries and hexagons; do not silently replace them with a new grid.",
+    "GEMS data.csv already supplied; retain locally and match projects by exact World Bank project ID.",
+    "Existing population raster, subject to Stage 2 source/units/coverage checks."
+  ],
+  "deferred": [
+    "GHSL 2030 is not a present-day settlement baseline. Initial connectivity concerns mapped town/village access, not a population-access score.",
+    "GHSL historical settlement footprints and a population-access metric require a separate verified input decision.",
+    "IOM movement counts and Northern Corridor crossing times are not downloaded or implemented here."
+  ]
+}
