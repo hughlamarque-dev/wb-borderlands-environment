@@ -18,12 +18,12 @@ def build():
             info.external_attr = 0o600 << 16
             archive.writestr(info, (ROOT / name).read_bytes())
     payload = buffer.getvalue()
-    bootstrap = '''import base64, hashlib, io, sys, zipfile
+    bootstrap = '''import base64, hashlib, io, os, sys, zipfile
 from pathlib import Path
 payload = base64.b64decode(%r)
 if hashlib.sha256(payload).hexdigest() != %r:
     raise RuntimeError('Stage 1 bundle checksum mismatch')
-runtime = Path(__file__).resolve().parent
+runtime = Path(os.environ['WB_STAGE1_RUNTIME'])
 with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     if sorted(archive.namelist()) != %r:
         raise RuntimeError('Unexpected file in Stage 1 bundle')

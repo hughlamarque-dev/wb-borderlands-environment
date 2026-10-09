@@ -59,6 +59,8 @@ __PYTHON_PAYLOAD__
     $start.WorkingDirectory = Split-Path $launcher -Parent
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
+    # QGIS --code need not define __file__; pass the runtime directory explicitly.
+    $start.EnvironmentVariables['WB_STAGE1_RUNTIME'] = $runtimeFolder
     if ([IO.Path]::GetExtension($launcher) -in @('.bat', '.cmd')) {
         $start.FileName = $env:ComSpec
         $start.Arguments = '/d /s /c ""' + $launcher + '" ' + $arguments + '"'

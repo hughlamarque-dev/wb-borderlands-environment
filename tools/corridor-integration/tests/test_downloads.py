@@ -9,6 +9,7 @@ import re
 import sys
 import tempfile
 import threading
+import types
 import unittest
 import urllib.error
 import zipfile
@@ -221,6 +222,24 @@ class BundleTest(unittest.TestCase):
                 self.assertEqual(archive.read(name), (ROOT / name).read_bytes())
         self.assertNotIn("ExecutionPolicy", launcher)
         self.assertNotIn("__PYTHON_PAYLOAD__", launcher)
+
+    def test_qgis_bootstrap_works_without_file_global(self):
+        launcher = (ROOT / "START_WB_STAGE1.cmd").read_bytes().decode("utf-8")
+        match = re.search(r"\$pythonPayload = @'\r?\n(.*?)\r?\n'@", launcher, re.S)
+        bootstrap = base64.b64decode(match.group(1)).decode("utf-8")
+        calls = []
+        fake = types.ModuleType("qgis_stage1")
+        fake.start = lambda: calls.append("started")
+        previous_path = list(sys.path)
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                with patch.dict("os.environ", {"WB_STAGE1_RUNTIME": folder}), patch.dict(sys.modules, {"qgis_stage1": fake}):
+                    exec(compile(bootstrap, "<QGIS --code>", "exec"), {"__name__": "__main__"})
+                self.assertEqual(calls, ["started"])
+                for name in ("download_inputs.py", "download_manifest.json", "qgis_stage1.py"):
+                    self.assertEqual((Path(folder) / name).read_bytes(), (ROOT / name).read_bytes())
+        finally:
+            sys.path[:] = previous_path
 
 
 if __name__ == "__main__":
