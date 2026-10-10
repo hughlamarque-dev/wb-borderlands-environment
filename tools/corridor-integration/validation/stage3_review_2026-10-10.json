@@ -59,5 +59,37 @@
     "Turn restrictions, dynamic border closures and surface passability are not modelled.",
     "OSM completeness and missing place nodes limit measured connectivity.",
     "No population-access score, traffic estimate, movement route or economic-impact claim is generated."
-  ]
+  ],
+  "browser_qa": {
+    "desktop_connectivity": {
+      "moyale_borana": {
+        "road_cells_drawn": 196,
+        "junction_nodes": 1126
+      },
+      "mandera_triangle": {
+        "road_cells_drawn": 148,
+        "junction_nodes": 736
+      },
+      "karamoja": {
+        "road_cells_drawn": 234,
+        "junction_nodes": 1366
+      },
+      "dikhil": {
+        "road_cells_drawn": 136,
+        "junction_nodes": 633
+      }
+    },
+    "place_threshold_controls": "2/5/10 km and city-town-village choices checked",
+    "mobile_viewport_width_px": 390,
+    "mobile_fews": "Dikhil Galafi/Loyado switching and separate reporter series checked",
+    "project_directory": "existing directory and P161067-linked GEMS details checked",
+    "native_grid_identities": "all 9500 original published cell IDs retained",
+    "view_cleanup": "FEWS panel and thematic geometry removed on Clean",
+    "browser_csv_checks": {
+      "FEWS_cattle_observations": 128,
+      "Moyale_grid_cells": 2694,
+      "Dikhil_GEMS_source_rows": 71
+    },
+    "application_errors": "none observed; browser extension messages excluded"
+  }
 }

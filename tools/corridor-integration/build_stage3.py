@@ -128,6 +128,9 @@ def prepare(review):
     return outputs,audit
 
 def amend_page(html):
+    if 'window.createWBCorridors({DATA,map' in html:
+        assert 'corridors/corridor-integration.js?v=2026-10-10.2' in html
+        return html
     def replace(old,new):
         nonlocal html
         assert html.count(old)==1,old[:100]
@@ -178,6 +181,7 @@ def build(review,site):
         (site/path).write_bytes(ciphertext);changed.append(path)
         return dict(path=path,id=identifier,nonce=base64.b64encode(nonce).decode(),gzip=True,mime=mime,bytes=len(ciphertext))
     for name,document in outputs.items():manifest[name]=asset(json.dumps(document,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode(),'application/json')
+    (site/'decoded').mkdir(parents=True,exist_ok=True)
     for code in CODES:
         name='page/map='+code;descriptor=manifest[name]
         raw=aes.decrypt(base64.b64decode(descriptor['nonce']),(site/descriptor['path']).read_bytes(),(boot['build']+'|'+descriptor['id']).encode())
