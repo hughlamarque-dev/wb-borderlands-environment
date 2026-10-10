@@ -5,7 +5,7 @@ window.createWBCorridors = function ({DATA,map,svgRenderer,setPreset,currentView
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=(v,d=0)=>v==null?'Not defined':Number(v).toLocaleString(undefined,{maximumFractionDigits:d});
   const fc=features=>({type:'FeatureCollection',features});
-  const state={metric:'junction_nodes',distance:'5',places:'urban',nodes:true,roads:true,gems:true,pid:'',relationship:'all',tradePlace:0,series:''};
+  const state={metric:'junction_nodes',distance:'5',places:'urban',nodes:false,roads:true,gems:true,pid:'',relationship:'all',tradePlace:0,series:''};
   const data={},pending=new Map(),layers=new Map();
   const methods='Shared OSM nodes on motorway, trunk or primary roads (including links), with at least three accessible neighbours and both major and local edges. Local paths exclude major roads, use a directed static motor-access graph and include a place-to-road snap of at most 250 m. Towns means OSM city/town nodes; all places also includes villages. The 15 km halo supports 2, 5 and 10 km searches. Nodes are not merged into functional interchanges. Turn restrictions, conditional access, closures and surface passability are not modelled. These are mapped connectivity indicators, not traffic, population access or economic integration.';
   const style=document.createElement('style');style.textContent=`
@@ -16,7 +16,7 @@ window.createWBCorridors = function ({DATA,map,svgRenderer,setPreset,currentView
   function clear(){for(const layer of layers.values())map.removeLayer(layer);layers.clear();}
   function add(key,layer){layers.set(key,layer);layer.addTo(map);}
   function tradeVisible(on){panel.hidden=!on;panel.classList.toggle('mobile-open',on&&window.innerWidth<=1024);if(on&&window.innerWidth<=1024){document.querySelector('.panel').classList.remove('mobile-open');el('projectPanel').classList.remove('mobile-open');el('eventPanel').classList.remove('mobile-open');}syncTradeNav();}
-  function syncTradeNav(){if(currentView()!=='fews')return;const on=!panel.hidden&&panel.classList.contains('mobile-open');el('mobileProjects').textContent='Trade';el('mobileProjects').setAttribute('aria-pressed',String(on));if(on){el('mobileMap').setAttribute('aria-pressed','false');el('mobileLayers').setAttribute('aria-pressed','false');document.body.classList.add('mobile-panel-open');}}
+  function syncTradeNav(){if(currentView()!=='fews')return;const on=window.innerWidth<=1024&&!panel.hidden&&panel.classList.contains('mobile-open'),views=document.querySelector('.panel').classList.contains('mobile-open');el('mobileProjects').textContent='Trade';for(const [id,value] of [['mobileProjects',on],['mobileLayers',views],['mobileMap',!on&&!views]])el(id).setAttribute('aria-pressed',String(value));document.body.classList.toggle('mobile-panel-open',on||views);if(on)el('mobileKey').open=false;}
   async function load(group){
     if(!['connectivity','fews','gems'].includes(group))return false;
     if(!pending.has(group))pending.set(group,parent.WBVault.json(DATA.code+'/'+group).then(value=>{if(value.format!=='wb-corridors-web-v1'||value.code!==DATA.code)throw new Error('Invalid corridor output');data[group]=value;}).catch(e=>{pending.delete(group);throw e;}));
@@ -43,7 +43,7 @@ window.createWBCorridors = function ({DATA,map,svgRenderer,setPreset,currentView
       const details=document.createElement('details');details.innerHTML='<summary>How to read this analysis</summary><p>'+esc(methods)+'</p><p>Length normalisation requires at least 0.5 km of mapped major road in a cell. Shares require at least one junction. Divided roads can contribute more than one node and carriageway. OSM coverage differs between places.</p>';c.appendChild(details);
       button(c,'Download grid values (CSV)',()=>downloadGrid());
     } else if(name==='fews'){
-      note(c,'Published monthly observations of informal cross-border trade. Select a reporting series to keep products, directions and units separate. These are historical observations, not current traffic.');
+      note(c,'Published monthly observations of cross-border trade. Select a reporting series to keep products, directions and units separate. These are historical observations, not current traffic.');
       for(const [i,p] of data.fews.places.entries()){const b=button(c,p.name,()=>{state.tradePlace=i;state.series='';tradeVisible(true);renderTrade();locateTrade();});b.style.margin='3px';}
       note(c,data.fews.places.length+' physical '+(data.fews.places.length===1?'place':'places')+' in this cluster. Reporting sides remain distinct. Balho is unplaced because its coordinates require verification.');
     } else {
@@ -80,7 +80,7 @@ window.createWBCorridors = function ({DATA,map,svgRenderer,setPreset,currentView
     else return;
     const credit=l.querySelector('.credit-note');l.insertBefore(c,credit||null);el('mobileLegend').innerHTML=l.innerHTML;
   }
-  function csvDownload(name,cols,rows){const quote=v=>{let s=v==null?'':String(v);if(typeof v!=='number'&&/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};const a=document.createElement('a'),url=URL.createObjectURL(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(quote).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  function csvDownload(name,cols,rows){const quote=v=>{let s=v==null?'':String(v);if(typeof v!=='number'&&/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};const a=document.createElement('a'),url=URL.createObjectURL(new Blob(['\ufeff'+[cols,...rows].map(r=>r.map(quote).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
   function downloadGrid(){const rows=cellRows(),cols=Object.keys(rows[0]);csvDownload(DATA.code+'_local_connectivity.csv',cols,rows.map(p=>cols.map(k=>p[k])));}
   function downloadGems(){const cols=['source_id','source_row','project_id','official_title','source_country','lead_practice','existing_map_relationship','longitude','latitude','location_date','implementation_status','coordinate_precision','major_road_straight_distance_km','closing_date','pre2020_closing_review'];csvDownload(DATA.code+'_gems_source_locations.csv',cols,gemsRows().map(f=>cols.map(k=>k==='longitude'?f.geometry.coordinates[0]:k==='latitude'?f.geometry.coordinates[1]:f.properties[k])));}
   function locateTrade(){const p=data.fews.places[state.tradePlace],xy=p.geometry.coordinates;map.panInside([xy[1],xy[0]],{paddingTopLeft:window.innerWidth>1024?[380,50]:[30,30],paddingBottomRight:window.innerWidth>1024?[370,50]:[30,85],animate:false});}
@@ -97,7 +97,7 @@ window.createWBCorridors = function ({DATA,map,svgRenderer,setPreset,currentView
     const products=[...new Set(p.series.map(s=>s.product))].sort((a,b)=>a.localeCompare(b));
     select(panel,'Product','tradeProduct',products.map(v=>[v,v]),s.product,v=>{state.series=[...p.series].filter(s=>s.product===v).sort((a,b)=>b.observations.length-a.observations.length)[0].key;renderTrade();});
     const choices=p.series.filter(a=>a.product===s.product).sort((a,b)=>a.key.localeCompare(b.key));
-    select(panel,'Reporting series','tradeSeries',choices.map(a=>[a.key,a.reporting_country+' · '+a.flow_type+' · '+a.source+' → '+a.destination+' · '+a.trade_type+' · '+a.display_unit+' · #'+a.dataseries]),s.key,v=>{state.series=v;renderTrade();});
+    select(panel,'Reporting series','tradeSeries',choices.map(a=>[a.key,a.reporting_country+' · '+a.border_point+' · '+a.flow_type+' · '+a.source+' → '+a.destination+' · '+a.trade_type+' · '+a.display_unit+' · #'+a.dataseries]),s.key,v=>{state.series=v;renderTrade();});
     const h=document.createElement('h3');h.textContent=s.product+' · '+s.display_unit;panel.appendChild(h);
     const plot=document.createElement('div');plot.innerHTML=chart(s);panel.appendChild(plot);
     note(panel,s.observations.length+' published monthly observations · '+esc(s.observations[0].period_date.slice(0,7))+' to '+esc(s.observations.at(-1).period_date.slice(0,7))+'. Gaps are missing observations, not zero. Raw record counts do not measure monitoring completeness.');
