@@ -129,15 +129,17 @@ def prepare(review):
 
 def amend_page(html):
     if 'window.createWBCorridors({DATA,map' in html:
-        old='corridors/corridor-integration.js?v=2026-10-10.2'
-        new='corridors/corridor-integration-v3.js?v=2026-10-10.3'
-        assert html.count(old)==1 or html.count(new)==1
-        return html.replace(old,new)
+        old=['corridors/corridor-integration.js?v=2026-10-10.2','corridors/corridor-integration-v3.js?v=2026-10-10.3']
+        new='corridors/corridor-integration-v4.js?v=2026-10-10.4'
+        if html.count(new)==1:return html
+        matches=[path for path in old if html.count(path)==1]
+        assert len(matches)==1
+        return html.replace(matches[0],new)
     def replace(old,new):
         nonlocal html
         assert html.count(old)==1,old[:100]
         html=html.replace(old,new)
-    replace('<script src="vendor/leaflet.markercluster.js"></script>', '<script src="vendor/leaflet.markercluster.js"></script>\n<script src="corridors/corridor-integration-v3.js?v=2026-10-10.3"></script>')
+    replace('<script src="vendor/leaflet.markercluster.js"></script>', '<script src="vendor/leaflet.markercluster.js"></script>\n<script src="corridors/corridor-integration-v4.js?v=2026-10-10.4"></script>')
     replace('data-preset="transport">Towns &amp; infrastructure','data-preset="transport">Corridors &amp; infrastructure')
     replace("const transportThemes={crossings:'Towns & transport',infrastructure:'Energy & infrastructure'};", "const transportThemes={connectivity:'Local road connectivity',fews:'Observed border trade',crossings:'Towns & transport',infrastructure:'Energy & infrastructure'};")
     replace("let transportTheme='crossings';", "let transportTheme='connectivity';")
@@ -191,10 +193,10 @@ def build(review,site):
         (site/'decoded'/('new_'+code+'.html')).write_text(html)
         manifest[name]=asset(html.encode(),'text/html')
     boot['manifest']=asset(json.dumps(manifest,separators=(',',':')).encode(),'application/json')
-    boot['ui_revision']='2026-10-10.corridors.31'
+    boot['ui_revision']='2026-10-10.corridors.32'
     (site/'boot.json').write_text(json.dumps(boot,separators=(',',':'))+'\n');changed.append('boot.json')
     audit_path='tools/corridor-integration/validation/stage3_review_2026-10-10.json';f=site/audit_path;f.parent.mkdir(parents=True,exist_ok=True);f.write_text(json.dumps(audit,indent=2)+'\n');changed.append(audit_path)
-    changed.append('corridors/corridor-integration-v3.js')
+    changed.append('corridors/corridor-integration-v4.js')
     (site/'changes.json').write_text(json.dumps(changed,indent=2));print(json.dumps(audit,indent=2));print('Changed files:',len(changed))
 
 if __name__=='__main__':build(pathlib.Path(sys.argv[1]),pathlib.Path(sys.argv[2]))
