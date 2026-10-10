@@ -90,6 +90,22 @@
       "Moyale_grid_cells": 2694,
       "Dikhil_GEMS_source_rows": 71
     },
-    "application_errors": "none observed; browser extension messages excluded"
+    "application_errors": "none observed; browser extension messages excluded",
+    "mobile_close_returns_to_map": true
+  },
+  "processing_tests": {
+    "run": 42,
+    "passed": 42,
+    "skipped": 0
+  },
+  "live_release": {
+    "commit": "1871b7d8ab947198e94f303a7f2fed900a495330",
+    "github_pages_deployment": "success",
+    "verified_views": [
+      "https://hughlamarque-dev.github.io/wb-borderlands-environment/?view=connectivity#map=mandera_triangle",
+      "https://hughlamarque-dev.github.io/wb-borderlands-environment/?view=fews#map=moyale_borana",
+      "https://hughlamarque-dev.github.io/wb-borderlands-environment/?view=projects#map=karamoja"
+    ],
+    "screenshot": "tools/corridor-integration/validation/stage3_live_connectivity_2026-10-10.jpg"
   }
 }
