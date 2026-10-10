@@ -1,0 +1,72 @@
+{
+  "status": "PASSED",
+  "reviewed": "2026-10-10",
+  "release_commit": "462a273fd694b860bb80b34c45dd18e2229b0d26",
+  "ui_revision": "2026-10-10.corridors.32",
+  "source_data_descriptors_unchanged": true,
+  "source_quarantines_unchanged": true,
+  "public_access_unchanged": true,
+  "new_module": "corridors/corridor-integration-v4.js",
+  "checks": {
+    "native_output_validation": "PASS",
+    "all_four_pages_javascript_syntax": "PASS",
+    "page_upgrade_idempotence": "PASS",
+    "fews_chart_geometry": {
+      "series": 764,
+      "observations": 7699,
+      "finite_and_in_bounds": "PASS",
+      "missing_month_line_breaks": "PASS",
+      "adjacent_month_segments": 5885
+    },
+    "desktop": {
+      "dikhil_trade_zoom_and_selected_place_visible": "PASS",
+      "dikhil_fractional_quantity_ticks": [
+        "0",
+        "0.1",
+        "0.2",
+        "0.3",
+        "0.4"
+      ],
+      "karamoja_gems_source_rows": 799,
+      "karamoja_gems_filter_and_directory_link": "PASS",
+      "mandera_connectivity_cells": 148,
+      "moyale_connectivity_cells": 196,
+      "undefined_rate_and_share_legends": "PASS",
+      "clean_view_removes_added_layers": "PASS"
+    },
+    "mobile": {
+      "viewport_width": 390,
+      "trade_select_font_px": 16,
+      "trade_close_button_height_px": 44,
+      "reporter_place_switch": "PASS",
+      "locate_returns_to_map": "PASS"
+    }
+  },
+  "live_checks": {
+    "deployment_run": 38066752536,
+    "deployment_conclusion": "success",
+    "module_loaded": "corridors/corridor-integration-v4.js?v=2026-10-10.4",
+    "keyboard_gems_point_popup": "PASS",
+    "gems_point_target_width_px": 24,
+    "gems_empty_filter_disables_locate": "PASS",
+    "gems_locate_restores_hidden_layer": "PASS",
+    "mobile_gems_locate_and_directory_to_map": "PASS",
+    "fews_series_summary": "PASS",
+    "connectivity_road_legend": "PASS",
+    "connectivity_cells_drawn": 148,
+    "urls": {
+      "connectivity": "https://hughlamarque-dev.github.io/wb-borderlands-environment/?view=connectivity#map=mandera_triangle",
+      "fews": "https://hughlamarque-dev.github.io/wb-borderlands-environment/?view=fews#map=dikhil",
+      "gems": "https://hughlamarque-dev.github.io/wb-borderlands-environment/?view=projects#map=karamoja"
+    },
+    "screenshot": "tools/corridor-integration/validation/ui_review_live_2026-10-10.jpg"
+  },
+  "changes": [
+    "FEWS full selected series summary and decimal chart scales",
+    "FEWS selected-place highlight and desktop map visibility",
+    "GEMS labelled square clusters and keyboard-accessible point targets",
+    "GEMS locate filtered rows and mobile directory-to-map navigation",
+    "Connectivity softer cell edges and explicit road/undefined-value legend"
+  ],
+  "fresh_script_address": true
+}
