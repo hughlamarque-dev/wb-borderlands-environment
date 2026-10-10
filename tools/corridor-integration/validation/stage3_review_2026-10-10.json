@@ -1,0 +1,63 @@
+{
+  "status": "PASSED",
+  "reviewed": "2026-10-10",
+  "native_qgis_version": "3.38.3-Grenoble",
+  "original_project_unchanged": true,
+  "metric_version": "major-road-junction-nodes-v1",
+  "maps": [
+    {
+      "code": "moyale_borana",
+      "cells": 2694,
+      "junction_nodes": 1126,
+      "road_cells": 196,
+      "gems_published_rows": 202,
+      "gems_quarantined_rows": 0,
+      "gems_project_ids": 13,
+      "fews_physical_places": 1,
+      "fews_monthly_observations": 1731
+    },
+    {
+      "code": "mandera_triangle",
+      "cells": 2638,
+      "junction_nodes": 736,
+      "road_cells": 148,
+      "gems_published_rows": 413,
+      "gems_quarantined_rows": 1,
+      "gems_project_ids": 12,
+      "fews_physical_places": 1,
+      "fews_monthly_observations": 1647
+    },
+    {
+      "code": "karamoja",
+      "cells": 3415,
+      "junction_nodes": 1366,
+      "road_cells": 234,
+      "gems_published_rows": 799,
+      "gems_quarantined_rows": 0,
+      "gems_project_ids": 15,
+      "fews_physical_places": 1,
+      "fews_monthly_observations": 2232
+    },
+    {
+      "code": "dikhil",
+      "cells": 753,
+      "junction_nodes": 633,
+      "road_cells": 136,
+      "gems_published_rows": 71,
+      "gems_quarantined_rows": 0,
+      "gems_project_ids": 4,
+      "fews_physical_places": 2,
+      "fews_monthly_observations": 2089
+    }
+  ],
+  "source_report_sha256": "20c45b777ddeabe9eb5ddfdc75c85f5e7a7773fcb698ceaed1ea55cc17b8e64c",
+  "gems_source_sha256": "c726046f662e4d0a7c485bef05bc016f0d575c40ca2dec5ae1d181d77a461e5b",
+  "fews_public_monthly_rows": 7739,
+  "fews_unplaced_balho_rows": 40,
+  "limits": [
+    "Functional interchanges are not merged; divided roads can add multiple nodes/carriageway lengths.",
+    "Turn restrictions, dynamic border closures and surface passability are not modelled.",
+    "OSM completeness and missing place nodes limit measured connectivity.",
+    "No population-access score, traffic estimate, movement route or economic-impact claim is generated."
+  ]
+}
