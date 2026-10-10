@@ -49,6 +49,14 @@ exit /b %WB_STAGE2_EXIT%
     path = ROOT / "START_WB_STAGE2.cmd"
     path.write_bytes(batch.replace("\r\n", "\n").replace("\n", "\r\n").encode())
     print(path, hashlib.sha256(path.read_bytes()).hexdigest())
+    # ZIP delivery downloads as a file instead of displaying batch source in a tab.
+    delivery = ROOT / "WB_STAGE2_FIXED.zip"
+    info = zipfile.ZipInfo("START_WB_STAGE2_FIXED.cmd", date_time=(2026, 10, 10, 0, 0, 0))
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.external_attr = 0o600 << 16
+    with zipfile.ZipFile(delivery, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(info, path.read_bytes())
+    print(delivery, hashlib.sha256(delivery.read_bytes()).hexdigest())
 if __name__ == "__main__":
     build()
 

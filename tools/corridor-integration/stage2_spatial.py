@@ -5,7 +5,7 @@ import math
 import sqlite3
 from collections import defaultdict
 from pathlib import Path
-from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCoordinateTransformContext,
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCoordinateTransformContext,
                        QgsFeature, QgsGeometry, QgsPointXY, QgsRectangle, QgsSpatialIndex)
 from download_inputs import check_cancel, save_json
 from stage2_graph import barrier_blocks, build_graph, nearest_places, padded_bounds, settlement_seeds, snap_to_segment
@@ -56,18 +56,22 @@ def valid_polygon(value, label, audit):
     repaired = value.makeValid()
     if repaired.isNull() or repaired.isEmpty():
         raise ValueError("Geometry repair failed: " + label + ": " + repaired.lastError())
-    selected = components(json.loads(repaired.asJson(12)), "Polygon")
-    if selected is None:
+    # Keep native double precision. Serializing the GEOS result to rounded
+    # GeoJSON and rebuilding WKT can reintroduce the self-intersection we fixed.
+    result = QgsGeometry(repaired)
+    if result.type() != Qgis.GeometryType.Polygon:
+        result.convertGeometryCollectionToSubclass(Qgis.GeometryType.Polygon)
+    if result.isNull() or result.isEmpty() or result.type() != Qgis.GeometryType.Polygon:
         raise ValueError("Geometry repair retained no polygon: " + label)
-    result = geometry(selected)
     if not result.isGeosValid():
         raise ValueError("Geometry still invalid after repair: " + label)
     delta = abs(result.area() - original_area) / max(abs(original_area), 1e-12)
     if delta > 0.001:
         raise ValueError("Geometry repair changes area by more than 0.1%: " + label)
     audit.append({"geometry": label, "method": "GEOS makeValid linework; polygon components only",
-                  "relative_area_change": delta, "source_sha256": hashlib.sha256(value.asWkt(12).encode()).hexdigest(),
-                  "derived_sha256": hashlib.sha256(result.asWkt(12).encode()).hexdigest(), "original_saved_over": False})
+                  "relative_area_change": delta, "source_sha256": hashlib.sha256(value.asWkt(17).encode()).hexdigest(),
+                  "derived_sha256": hashlib.sha256(result.asWkt(17).encode()).hexdigest(),
+                  "rounded_serialization_used_in_repair": False, "original_saved_over": False})
     return result
 
 class MapSpace:
@@ -103,7 +107,7 @@ class MapSpace:
             if len(self.geometry_audit) > before:
                 back = QgsGeometry(projected)
                 back.transform(self.backward)
-                self.hex_source[cell] = json.loads(back.asJson(12))
+                self.hex_source[cell] = json.loads(back.asJson(17))
                 self.repaired_cells.add(cell)
             else:
                 self.hex_source[cell] = source["geometry"]

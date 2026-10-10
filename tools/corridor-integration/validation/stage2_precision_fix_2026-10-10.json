@@ -1,0 +1,35 @@
+{
+  "verified_at_utc": "2026-10-10T14:10:53.909322+00:00",
+  "native_report_status": "FAILED",
+  "native_error": "Geometry still invalid after repair: local boundary part 0",
+  "completed_topology_way_count": 636594,
+  "source_gems_rows": 11287,
+  "source_gems_project_ids": 69,
+  "published_fews_rows": 7739,
+  "fix": "Native polygon filtering without rounded GeoJSON/WKT reconstruction; boundary capture and repaired-cell export at precision 17",
+  "unit_tests_passed": 42,
+  "old_code_regression_reproduced": true,
+  "new_code_regression_passed": true,
+  "published_geometry_checks": {
+    "moyale_borana": {
+      "cells_checked": 2694,
+      "repairs": 1
+    },
+    "mandera_triangle": {
+      "cells_checked": 2638,
+      "repairs": 6
+    },
+    "karamoja": {
+      "cells_checked": 3415,
+      "repairs": 12
+    },
+    "dikhil": {
+      "cells_checked": 753,
+      "repairs": 3
+    }
+  },
+  "completed_cache_identity_verified": true,
+  "cache_key": "2cfe4f5197e44053e82da4cf8b80f70fa91831e9d86a0dd73ab3e99191a861c8",
+  "next_native_run": "pending user rerun",
+  "map_data_published": false
+}

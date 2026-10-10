@@ -53,7 +53,7 @@ def capture_boundaries(project):
         if layer.crs().authid() != "EPSG:4326":
             raise ValueError("Unexpected CRS for cluster layer: " + name)
         result[code] = {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {},
-                         "geometry": json.loads(f.geometry().asJson(12))} for f in layer.getFeatures()]}
+                         "geometry": json.loads(f.geometry().asJson(17))} for f in layer.getFeatures()]}
         if not result[code]["features"]:
             raise ValueError("Empty current cluster boundary: " + name)
     return result

@@ -7,8 +7,8 @@ required before results are integrated into the live website.
 
 ## Run Stage 2
 
-1. Download [START_WB_STAGE2.cmd](https://github.com/hughlamarque-dev/wb-borderlands-environment/raw/refs/heads/main/tools/corridor-integration/START_WB_STAGE2.cmd).
-2. Double-click it. QGIS opens the original project at
+1. Download [WB_STAGE2_FIXED.zip](https://github.com/hughlamarque-dev/wb-borderlands-environment/raw/refs/heads/main/tools/corridor-integration/WB_STAGE2_FIXED.zip) and choose **Extract all**.
+2. Double-click **START_WB_STAGE2_FIXED.cmd** inside the extracted folder. QGIS opens the original project at
    C:\Users\hughl\OneDrive\Desktop\Public Maps\Public Experiment.qgz and starts
    processing. Keep that new QGIS window open. If the supplied GEMS data.csv
    is not found in Downloads or beside the project, select it in one file chooser.
@@ -142,6 +142,23 @@ The report ZIP contains inventory and receipts, **not** the large input files,
 GEMS records, credentials, or QGIS project itself. It is not uploaded automatically.
 The original project is never saved by the script, no new data layers are added,
 and no GitHub login or publication occurs on the user's computer in Stage 1.
+
+## 10 October: boundary precision fix
+
+The first native run completed the six-extract topology cache (636,594 unique
+road ways) and GEMS/FEWS table processing, then stopped during boundary repair.
+The repair helper serialized its native GEOS result at 12 decimal places and
+rebuilt it from WKT. Tiny components can collapse in that round trip and become
+invalid again. The helper now filters polygon components directly in QGIS's
+native geometry objects. Captured boundaries and repaired cell exports retain
+17 decimal places. Source data and the existing topology cache identity are
+preserved; the completed cache is reused on the next run.
+
+A regression fixture reproduces the old invalid-after-repair failure and passes
+the revised helper. Checks also cover mixed polygon/line collections and all
+9,500 published cells plus boundary parts. The full native map-processing run
+still requires the next local report. Optional independent regression tests use
+Shapely; it is not a launcher dependency or installed into the user's QGIS.
 
 ## Stage 2 definitions
 
